@@ -1,2 +1,3 @@
 rootProject.name='ArUcoDetection'
 include ':app'
+include ':openCVLibrary343'
