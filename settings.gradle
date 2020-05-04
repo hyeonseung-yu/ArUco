@@ -1,3 +1,5 @@
 rootProject.name='ArUcoDetection'
 include ':app'
-include ':openCVLibrary343'
+//include ':openCVLibrary343'
+include ':opencv'
+project(':opencv').projectDir = new File(opencvsdk + '/sdk')
