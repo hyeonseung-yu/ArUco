@@ -2,6 +2,8 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
+#include <opencv2/imgproc/types_c.h>
+#include <android/native_window_jni.h>
 #include <android/log.h>
 
 using namespace std;
@@ -188,10 +190,86 @@ Java_com_packt_masteringopencv4_opencvarucoar_CalibrationActivity_doCalibration(
 
 extern "C"
 JNIEXPORT jstring JNICALL
-Java_com_hyeonseung_arucodetection_CameraController_findArUCo(JNIEnv *env, jclass type,
-                                                                     jobject srcBuffer, jobject dstSurface) {
+Java_com_hyeonseung_arucodetection_CameraController_findArUCo(JNIEnv *env, jobject type,
+        jint srcWidth, jint srcHeight, jobject  srcBuffer,jobject  dstSurface) {
+
+    char outStr[200];
+
+    uint8_t *srcLumaPtr = reinterpret_cast<uint8_t *>(env->GetDirectBufferAddress(srcBuffer));
+
+    if (srcLumaPtr == nullptr) {
+
+        return NULL;
+    }
+
+    int dstWidth;
+    int dstHeight;
+
+    cv::Mat mYuv(srcHeight + srcHeight / 2, srcWidth, CV_8UC1, srcLumaPtr);
+
+    uint8_t *srcChromaUVInterleavedPtr = nullptr;
+    bool swapDstUV;
+
+    ANativeWindow *win = ANativeWindow_fromSurface(env, dstSurface);
+    ANativeWindow_acquire(win);
+
+    ANativeWindow_Buffer buf;
+
+    dstWidth = srcHeight;
+    dstHeight = srcWidth;
+//    dstWidth = srcWidth;
+//    dstHeight = srcHeight;
+
+    ANativeWindow_setBuffersGeometry(win, dstWidth, dstHeight, 0 /*format unchanged*/);
+
+    if (int32_t err = ANativeWindow_lock(win, &buf, NULL)) {
+
+        ANativeWindow_release(win);
+        return NULL;
+    }
+
+    uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
+    Mat dstRgba(dstHeight, buf.stride, CV_8UC4,
+                dstLumaPtr);        // TextureView buffer, use stride as width
+    Mat srcRgba(srcHeight, srcWidth, CV_8UC4);
+    Mat flipRgba(dstHeight, dstWidth, CV_8UC4);
+
+    // convert YUV -> RGBA
+    cv::cvtColor(mYuv, srcRgba, CV_YUV2RGBA_NV21);
+
+    // Rotate 90 degree
+    cv::transpose(srcRgba, flipRgba);
+    cv::flip(flipRgba, flipRgba, 1);
 
 
+    // LaneDetect(flipRgba, str, saveFile, outStr);
+
+    // copy to TextureView surface
+    uchar *dbuf;
+    uchar *sbuf;
+    dbuf = dstRgba.data;
+    sbuf = flipRgba.data;
+    int i;
+    for(i=0;i<flipRgba.rows;i++) {
+        dbuf = dstRgba.data + i * buf.stride * 4;
+        memcpy(dbuf, sbuf, flipRgba.cols * 4);
+        sbuf += flipRgba.cols * 4;
+    }
+
+    // Draw some rectangles
+    Point p1(100, 100);
+    Point p2(300, 300);
+    cv::rectangle(dstRgba, p1, p2, Scalar(255, 255, 255));
+    cv::rectangle(dstRgba, Point(10, 10), Point(dstWidth - 1, dstHeight - 1),
+                  Scalar(255, 255, 255));
+    cv::rectangle(dstRgba, Point(100, 100), Point(dstWidth / 2, dstWidth / 2),
+                  Scalar(255, 255, 255));
+
+    //LOGE("bob dstWidth=%d height=%d", dstWidth, dstHeight);
+    ANativeWindow_unlockAndPost(win);
+    ANativeWindow_release(win);
+
+    return env->NewStringUTF(outStr);
 
 
 }
