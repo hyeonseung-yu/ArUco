@@ -3,21 +3,23 @@ package com.hyeonseung.arucodetection
 import android.Manifest
 import android.app.Activity
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Log
-import android.view.SurfaceView
-import android.view.WindowManager
+import android.view.*
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import org.opencv.android.*
-import org.opencv.android.Utils.matToBitmap
 import org.opencv.core.Mat
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 
 //class MainActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewListener2{
     class MainActivity : Activity(), CameraBridgeViewBase.CvCameraViewListener2 {
 
         private var mOpenCvCameraView: JavaCamera2View? = null
+
+        private var mMenu: Menu? = null
+
+        private var doCalibration: Boolean = false
 
         private val mLoaderCallback = object : BaseLoaderCallback(this) {
             override fun onManagerConnected(status: Int) {
@@ -49,6 +51,8 @@ import org.opencv.core.Mat
                 CAMERA_PERMISSION_REQUEST
             )
 
+
+
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             setContentView(R.layout.activity_main)
 
@@ -57,7 +61,17 @@ import org.opencv.core.Mat
             mOpenCvCameraView!!.visibility = SurfaceView.VISIBLE
 
             mOpenCvCameraView!!.setCvCameraViewListener(this)
+
+            /*val calibrationButton: View = findViewById(R.id.calibration_button)
+            calibrationButton.setOnClickListener {
+
+            }*/
+            val calibrationButton: FloatingActionButton =findViewById<FloatingActionButton>(R.id.calibration_button)
+            calibrationButton.setOnClickListener{
+                doCalibration = true
+            }
         }
+
 
 
         override fun onRequestPermissionsResult(
@@ -112,8 +126,16 @@ import org.opencv.core.Mat
             // get current camera frame as OpenCV Mat object
             val mat = frame.rgba()
 
-            val resMat = Mat(findArUCo(mat.nativeObjAddr))
-            return resMat
+            if(!doCalibration) {
+                val resMat = Mat(findArUCo(mat.nativeObjAddr))
+                return resMat
+            }else{
+                //doCalibration(mat.nativeObjAddr)
+                Log.d(TAG, "Do calibration")
+                doCalibration = false
+                return mat
+            }
+
         }
 
         private external fun findArUCo(matAddr: Long): Long
