@@ -1,23 +1,18 @@
 package com.hyeonseung.arucodetection
 
 import android.Manifest
-
-import androidx.core.app.ActivityCompat
+import android.app.Activity
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.util.Log
 import android.view.SurfaceView
-import android.app.Activity
 import android.view.WindowManager
-import android.content.pm.PackageManager
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
 import org.opencv.android.*
-import org.opencv.android.CameraBridgeViewBase.CvCameraViewFrame
-import org.opencv.core.MatOfPoint2f
-import org.opencv.core.Core
-import org.opencv.core.CvType
+import org.opencv.android.Utils.matToBitmap
 import org.opencv.core.Mat
-import org.opencv.imgproc.Imgproc
 
 //class MainActivity : AppCompatActivity(), CameraBridgeViewBase.CvCameraViewListener2{
     class MainActivity : Activity(), CameraBridgeViewBase.CvCameraViewListener2 {
@@ -115,16 +110,13 @@ import org.opencv.imgproc.Imgproc
 
         override fun onCameraFrame(frame: CameraBridgeViewBase.CvCameraViewFrame): Mat {
             // get current camera frame as OpenCV Mat object
-            val mat = frame.gray()
+            val mat = frame.rgba()
 
-            // native call to process current camera frame
-           // adaptiveThresholdFromJNI(mat.nativeObjAddr)
-
-            // return processed frame for live preview
-            return mat
+            val resMat = Mat(findArUCo(mat.nativeObjAddr))
+            return resMat
         }
 
-        //private external fun adaptiveThresholdFromJNI(matAddr: Long)
+        private external fun findArUCo(matAddr: Long): Long
 
         companion object {
 

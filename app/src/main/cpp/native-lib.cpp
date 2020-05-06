@@ -2,14 +2,18 @@
 #include <string>
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
-#include <opencv2/imgproc/types_c.h>
-#include <android/native_window_jni.h>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/core/core.hpp>
 #include <android/log.h>
+#include <android/bitmap.h>
 
 using namespace std;
 using namespace cv;
 
 #define LOGTAG "NativeAruco"
+
+#define ASSERT(status, ret)     if (!(status)) { return ret; }
+#define ASSERT_FALSE(status)    ASSERT(status, false)
 
 Ptr<aruco::Dictionary> dict = aruco::Dictionary::get(aruco::DICT_ARUCO_ORIGINAL);
 Ptr<aruco::GridBoard> board = aruco::GridBoard::create(10,7,14.0f,9.2f, dict);
@@ -186,90 +190,36 @@ Java_com_packt_masteringopencv4_opencvarucoar_CalibrationActivity_doCalibration(
 }
 
 
-
-
 extern "C"
-JNIEXPORT jstring JNICALL
-Java_com_hyeonseung_arucodetection_CameraController_findArUCo(JNIEnv *env, jobject type,
-        jint srcWidth, jint srcHeight, jobject  srcBuffer,jobject  dstSurface) {
+JNIEXPORT jlong JNICALL
+Java_com_hyeonseung_arucodetection_MainActivity_findArUCo(JNIEnv *env, jobject type,jlong matAddr) {
 
-    char outStr[200];
+    // get Mat from raw address
+    Mat &input_mat = *(Mat *) matAddr;
 
-    uint8_t *srcLumaPtr = reinterpret_cast<uint8_t *>(env->GetDirectBufferAddress(srcBuffer));
+    // ArUco library requires CV_8UC3 (without alpha channel) input.
+    cv::Size input_size = input_mat.size();
+    cv::Mat *mat_dst = new cv::Mat(input_size.height, input_size.width, CV_8UC3);
+    cv::cvtColor(input_mat, *mat_dst, cv::COLOR_RGBA2RGB);
 
-    if (srcLumaPtr == nullptr) {
+    std::vector<int> ids;
+    std::vector<std::vector<cv::Point2f>> corners;
+    cv::Ptr<cv::aruco::Dictionary> dictionary = aruco::Dictionary::get(aruco::DICT_ARUCO_ORIGINAL);
+    cv::aruco::detectMarkers(*mat_dst, dictionary, corners, ids);
+    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "4");
+    // if at least one marker detected
+    if (ids.size() > 0) {
+        cv::aruco::drawDetectedMarkers(*mat_dst, corners, ids);
+        std::vector<cv::Vec3d> rvecs, tvecs;
+        __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "5");
 
-        return NULL;
+        /*
+        cv::aruco::estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, distCoeffs, rvecs, tvecs);
+        __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "6");
+        // draw axis for each marker
+        for(int i=0; i<ids.size(); i++)
+            cv::aruco::drawAxis(mat, cameraMatrix, distCoeffs, rvecs[i], tvecs[i], 0.1);
+            */
     }
-
-    int dstWidth;
-    int dstHeight;
-
-    cv::Mat mYuv(srcHeight + srcHeight / 2, srcWidth, CV_8UC1, srcLumaPtr);
-
-    uint8_t *srcChromaUVInterleavedPtr = nullptr;
-    bool swapDstUV;
-
-    ANativeWindow *win = ANativeWindow_fromSurface(env, dstSurface);
-    ANativeWindow_acquire(win);
-
-    ANativeWindow_Buffer buf;
-
-    dstWidth = srcHeight;
-    dstHeight = srcWidth;
-//    dstWidth = srcWidth;
-//    dstHeight = srcHeight;
-
-    ANativeWindow_setBuffersGeometry(win, dstWidth, dstHeight, 0 /*format unchanged*/);
-
-    if (int32_t err = ANativeWindow_lock(win, &buf, NULL)) {
-
-        ANativeWindow_release(win);
-        return NULL;
-    }
-
-    uint8_t *dstLumaPtr = reinterpret_cast<uint8_t *>(buf.bits);
-    Mat dstRgba(dstHeight, buf.stride, CV_8UC4,
-                dstLumaPtr);        // TextureView buffer, use stride as width
-    Mat srcRgba(srcHeight, srcWidth, CV_8UC4);
-    Mat flipRgba(dstHeight, dstWidth, CV_8UC4);
-
-    // convert YUV -> RGBA
-    cv::cvtColor(mYuv, srcRgba, CV_YUV2RGBA_NV21);
-
-    // Rotate 90 degree
-    cv::transpose(srcRgba, flipRgba);
-    cv::flip(flipRgba, flipRgba, 1);
-
-
-    // LaneDetect(flipRgba, str, saveFile, outStr);
-
-    // copy to TextureView surface
-    uchar *dbuf;
-    uchar *sbuf;
-    dbuf = dstRgba.data;
-    sbuf = flipRgba.data;
-    int i;
-    for(i=0;i<flipRgba.rows;i++) {
-        dbuf = dstRgba.data + i * buf.stride * 4;
-        memcpy(dbuf, sbuf, flipRgba.cols * 4);
-        sbuf += flipRgba.cols * 4;
-    }
-
-    // Draw some rectangles
-    Point p1(100, 100);
-    Point p2(300, 300);
-    cv::rectangle(dstRgba, p1, p2, Scalar(255, 255, 255));
-    cv::rectangle(dstRgba, Point(10, 10), Point(dstWidth - 1, dstHeight - 1),
-                  Scalar(255, 255, 255));
-    cv::rectangle(dstRgba, Point(100, 100), Point(dstWidth / 2, dstWidth / 2),
-                  Scalar(255, 255, 255));
-
-    //LOGE("bob dstWidth=%d height=%d", dstWidth, dstHeight);
-    ANativeWindow_unlockAndPost(win);
-    ANativeWindow_release(win);
-
-    return env->NewStringUTF(outStr);
-
-
+    return (jlong)mat_dst;
 }
