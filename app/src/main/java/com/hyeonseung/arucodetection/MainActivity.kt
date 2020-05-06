@@ -21,6 +21,12 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 
         private var doCalibration: Boolean = false
 
+        private var mCameraMatrix : Mat? = null
+
+        private var mDistortionCoefficients : Mat? = null
+
+        var mCalibrator: CameraCalibrator? = null
+
         private val mLoaderCallback = object : BaseLoaderCallback(this) {
             override fun onManagerConnected(status: Int) {
                 when (status) {
@@ -118,7 +124,16 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
                 mOpenCvCameraView!!.disableView()
         }
 
-        override fun onCameraViewStarted(width: Int, height: Int) {}
+        override fun onCameraViewStarted(width: Int, height: Int) {
+
+            mCalibrator = CameraCalibrator(width, height)
+
+            if (CalibrationResult.tryLoad(this, mCalibrator!!.getCameraMatrix(), mCalibrator!!.getDistortionCoefficients())) {
+                mCalibrator!!.setCalibrated();
+                mCameraMatrix = mCalibrator!!.cameraMatrix
+                mDistortionCoefficients = mCalibrator!!.distortionCoefficients
+            }
+        }
 
         override fun onCameraViewStopped() {}
 
@@ -127,18 +142,38 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
             val mat = frame.rgba()
 
             if(!doCalibration) {
-                val resMat = Mat(findArUCo(mat.nativeObjAddr))
-                return resMat
+
+                if ( mCameraMatrix != null && mDistortionCoefficients != null ){
+                    val resMat = Mat(findArUCo(mat.nativeObjAddr,
+                        mCameraMatrix!!.nativeObjAddr, mDistortionCoefficients!!.nativeObjAddr
+                    ))
+                    return resMat
+                }else{
+                    return mat
+                }
             }else{
                 //doCalibration(mat.nativeObjAddr)
                 Log.d(TAG, "Do calibration")
+
+                mCalibrator?.processFrame(frame.gray(), frame.rgba() )
+                mCalibrator?.addCorners()
+                mCalibrator?.calibrate()
+
+                mCameraMatrix = mCalibrator?.cameraMatrix
+                mDistortionCoefficients = mCalibrator?.distortionCoefficients
+
+
+
                 doCalibration = false
+
+
+
                 return mat
             }
 
         }
 
-        private external fun findArUCo(matAddr: Long): Long
+        private external fun findArUCo(matAddr: Long, cameraMatrix: Long, distortionMatrix: Long): Long
 
         companion object {
 

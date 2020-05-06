@@ -192,10 +192,14 @@ Java_com_packt_masteringopencv4_opencvarucoar_CalibrationActivity_doCalibration(
 
 extern "C"
 JNIEXPORT jlong JNICALL
-Java_com_hyeonseung_arucodetection_MainActivity_findArUCo(JNIEnv *env, jobject type,jlong matAddr) {
+Java_com_hyeonseung_arucodetection_MainActivity_findArUCo(JNIEnv *env, jobject type,jlong matAddr, jlong cameraMat, jlong distortionMat) {
 
     // get Mat from raw address
     Mat &input_mat = *(Mat *) matAddr;
+
+    Mat &cameraMatrix = *(Mat *) cameraMat;
+
+    Mat &distCoeffs = *(Mat *) distortionMat;
 
     // ArUco library requires CV_8UC3 (without alpha channel) input.
     cv::Size input_size = input_mat.size();
@@ -213,13 +217,13 @@ Java_com_hyeonseung_arucodetection_MainActivity_findArUCo(JNIEnv *env, jobject t
         std::vector<cv::Vec3d> rvecs, tvecs;
         __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "5");
 
-        /*
+
         cv::aruco::estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, distCoeffs, rvecs, tvecs);
         __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "6");
         // draw axis for each marker
         for(int i=0; i<ids.size(); i++)
-            cv::aruco::drawAxis(mat, cameraMatrix, distCoeffs, rvecs[i], tvecs[i], 0.1);
-            */
+            cv::aruco::drawAxis(*mat_dst, cameraMatrix, distCoeffs, rvecs[i], tvecs[i], 0.1);
+
     }
     return (jlong)mat_dst;
 }
