@@ -1,3 +1,7 @@
+/**
+ * This code is adopted from OpenCV android samples.
+ * https://github.com/opencv/opencv/tree/master/samples/android/camera-calibration
+ */
 package com.hyeonseung.arucodetection;
 
 import java.util.ArrayList;
@@ -47,9 +51,11 @@ public class CameraCalibrator {
         Log.i(TAG, "Instantiated new " + this.getClass());
     }
 
-    public void processFrame(Mat grayFrame, Mat rgbaFrame) {
+    public boolean processFrame(Mat grayFrame, Mat rgbaFrame) {
         findPattern(grayFrame);
         renderFrame(rgbaFrame);
+
+        return mPatternWasFound;
     }
 
     public void calibrate() {

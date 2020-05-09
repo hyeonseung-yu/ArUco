@@ -1,8 +1,11 @@
+/**
+ * This code is adopted from OpenCV android samples.
+ * https://github.com/opencv/opencv/tree/master/samples/android/camera-calibration
+ */
+
 package com.hyeonseung.arucodetection;
 
-
 import org.opencv.core.Mat;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
