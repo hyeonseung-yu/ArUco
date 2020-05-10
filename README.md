@@ -1,6 +1,6 @@
 # ArUco
 ArUco detection android app. 
-The app is implemented using OpenCV android camera helper library. `android.hardware.camera2` libary is indirectly used via JavaCamera2View class. 
+The app is implemented using OpenCV android camera helper library. `android.hardware.camera2` libary is indirectly used via JavaCamera2View class. Currently the app supports `DICT_6X6_250` dictionary for ArUco detection. 
 
 # Build setting
 The current version is tested for Google Pixel 3a with the following build configuration.
