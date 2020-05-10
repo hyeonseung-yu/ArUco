@@ -171,6 +171,9 @@ class MainActivity : Activity(), CameraBridgeViewBase.CvCameraViewListener2 {
 
                 mCameraMatrix = mCalibrator?.cameraMatrix
                 mDistortionCoefficients = mCalibrator?.distortionCoefficients
+
+                // Save the calibration data using SharedPreferences.
+                CalibrationResult.save(this,  mCalibrator!!.getCameraMatrix(), mCalibrator!!.getDistortionCoefficients())
             }else{
                 Toast.makeText(applicationContext,"The calibration pattern was not found.",Toast.LENGTH_SHORT).show()
             }
