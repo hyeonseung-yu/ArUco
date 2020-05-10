@@ -143,17 +143,23 @@ class MainActivity : Activity(), CameraBridgeViewBase.CvCameraViewListener2 {
         val mat = frame.rgba()
 
         if(!doCalibration) {
-            // Find ArUCo markers.
 
-            // Check if the calibration data is available.
-            if ( mCameraMatrix != null && mDistortionCoefficients != null ){
-                val detectedMat = Mat(findArUCo(mat.nativeObjAddr,
-                    mCameraMatrix!!.nativeObjAddr, mDistortionCoefficients!!.nativeObjAddr
-                ))
-                return detectedMat
+            if ( mCameraMatrix!=null && mDistortionCoefficients!=null) {
+                // Calibration data is available.
+                return Mat(
+                    findArUCo(
+                        mat.nativeObjAddr,
+                        mCameraMatrix!!.nativeObjAddr, mDistortionCoefficients!!.nativeObjAddr, true
+                    )
+                )
             }else{
-                // If no calibration data is available, then simply display preview images.
-                return mat
+                // Calibration data is not available.
+                return Mat(
+                    findArUCo(
+                        mat.nativeObjAddr,
+                        0,0, false
+                    )
+                )
             }
         }else{
             // Perform the calibration.
@@ -176,7 +182,8 @@ class MainActivity : Activity(), CameraBridgeViewBase.CvCameraViewListener2 {
     }
 
     // OpenCV JNI call.
-    private external fun findArUCo(matAddr: Long, cameraMatrix: Long, distortionCoefficients: Long): Long
+    private external fun findArUCo(matAddr: Long, cameraMatrix: Long, distortionCoefficients: Long, isCalibrationAvailable: Boolean): Long
+
 
     companion object {
         private const val TAG = "MainActivity"

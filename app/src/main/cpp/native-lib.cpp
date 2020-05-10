@@ -14,7 +14,7 @@ using namespace cv;
  */
 extern "C"
 JNIEXPORT jlong JNICALL
-Java_com_hyeonseung_arucodetection_MainActivity_findArUCo(JNIEnv *env, jobject type,jlong matAddr, jlong cameraMat, jlong distortionCoeffsMat) {
+Java_com_hyeonseung_arucodetection_MainActivity_findArUCo(JNIEnv *env, jobject type,jlong matAddr, jlong cameraMat, jlong distortionCoeffsMat, jboolean isCalibrationAvailable ) {
 
     // Get Mat data for image input and camera calibration matrices.
     Mat &input_mat = *(Mat *) matAddr;
@@ -37,14 +37,19 @@ Java_com_hyeonseung_arucodetection_MainActivity_findArUCo(JNIEnv *env, jobject t
         // Draw the indicators around the detected markers.
         cv::aruco::drawDetectedMarkers(*mat_dst, corners, ids);
 
-        // Initialize the pose estimation vectors.
-        std::vector<cv::Vec3d> rvecs, tvecs;
-        // Estimate the pose.
-        cv::aruco::estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, distCoeffs, rvecs, tvecs);
-        // Draw axis for each marker.
-        for(int i=0; i<ids.size(); i++)
-            cv::aruco::drawAxis(*mat_dst, cameraMatrix, distCoeffs, rvecs[i], tvecs[i], 0.1);
+        // Pose estimation can be performed only when the calibration is available.
+        if(isCalibrationAvailable) {
+            // Initialize the pose estimation vectors.
+            std::vector<cv::Vec3d> rvecs, tvecs;
+            // Estimate the pose.
+            cv::aruco::estimatePoseSingleMarkers(corners, 0.05, cameraMatrix, distCoeffs, rvecs,
+                                                 tvecs);
+            // Draw axis for each marker.
+            for (int i = 0; i < ids.size(); i++)
+                cv::aruco::drawAxis(*mat_dst, cameraMatrix, distCoeffs, rvecs[i], tvecs[i], 0.1);
+        }
     }
 
     return (jlong)mat_dst;
 }
+
